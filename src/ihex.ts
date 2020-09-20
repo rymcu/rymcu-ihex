@@ -2,7 +2,7 @@
  * @Author: ferried
  * @Email: harlancui@outlook.com
  * @Date: 2020-09-19 20:23:03
- * @LastEditTime: 2020-09-20 17:34:49
+ * @LastEditTime: 2020-09-20 18:00:15
  * @LastEditors: ferried
  * @Description: Basic description
  * @FilePath: /rymcu-ihex/src/ihex.ts
@@ -36,7 +36,7 @@ export class IHex {
      * Read Intel HEX data from string or lines
      * @param filepath file path
      */
-    read(filepath: string): IHex {
+    read(filepath: string): void {
         this.log.s("read")
         this.log.r("filepath", filepath)
         let segbase: number = 0
@@ -76,7 +76,6 @@ export class IHex {
             }
         }
         this.log.e("read")
-        return this
     }
 
 
@@ -178,10 +177,8 @@ export class IHex {
      * Read Intel HEX data from file
      * @param filepath file path
      */
-    read_file(filepath: string): IHex {
-        const ihex = new IHex(this.debug)
-        ihex.read_file(filepath)
-        return ihex
+    read_file(filepath: string): void {
+        this.read(filepath)
     }
 
     /**
