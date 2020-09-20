@@ -2,14 +2,14 @@
  * @Author: ferried
  * @Email: harlancui@outlook.com
  * @Date: 2020-09-19 20:23:03
- * @LastEditTime: 2020-09-20 16:35:55
+ * @LastEditTime: 2020-09-20 17:34:49
  * @LastEditors: ferried
  * @Description: Basic description
  * @FilePath: /rymcu-ihex/src/ihex.ts
  * @LICENSE
  */
 import fs from "fs"
-import { BHB_E } from './encode'
+import { BHB_E, H1_E, H2_E, I1_E } from './encode'
 import { IHexValueException } from './exception'
 import { Log } from './log'
 import { BHB, H1, H2, I1 } from './parser'
@@ -143,7 +143,6 @@ export class IHex {
             this.areas.set(istart, idata)
             this.log.r("this.area", this.areas)
         } else {
-            console.log("ajskdlfjsakldfjaklsdjfklasjdfkljsadklfjaskldfjkalsjfklasjdfklsa")
             const data = this.areas.get(area)
             this.log.r("data", data, "hex")
             const area_data = Buffer.from([...data.slice(0, istart - area), ...idata, ...data.slice(iend - area, -1)])
@@ -163,7 +162,7 @@ export class IHex {
             const start = r.value
             const data = this.areas.get(start)
             this.log.r("data", data, "hex")
-            const end = start + data.length 
+            const end = start + data.length
             this.log.r("start", start)
             this.log.r("end", end)
             this.log.r("addr >= start && addr < end", addr >= start && addr <= end)
@@ -217,9 +216,66 @@ export class IHex {
      * Write Intel HEX data to string
      */
     write(): string {
+        this.log.s("write")
         let output = ""
+        this.log.r("output", output)
+        this.areas = new Map(Array.from(this.areas).sort((a, b) => a[0] - b[0]).map((i) => [i[0], i[1]]));
+        let iterator = this.areas.keys();
+        let r: IteratorResult<number>;
+        while (r = iterator.next(), !r.done) {
+            let start = r.value
+            const data = this.areas.get(start)
+            let i = 0
+            let segbase = 0
+            while (i < data.length) {
+                this.log.r("start", start)
+                this.log.r("i", i)
+                const chunk = data.slice(i, i + this.row_bytes)
+                this.log.r("chunk", chunk, "hex")
+                let addr = start
+                this.log.r("addr", addr)
+                let newsegbase = segbase
+                this.log.r("newsegbase", newsegbase)
 
-        return null
+                if (this.mode == 8) {
+                    addr = addr & 0xFFFF
+                } else if (this.mode == 16) {
+                    let t = addr & 0xFFFF
+                    newsegbase = (addr - t) >> 4
+                    addr = t
+                    if (newsegbase != segbase) {
+                        output += this.make_line(0x02, 0, H1_E.encode({ v1: newsegbase }))
+                        segbase = newsegbase
+                    }
+                } else if (this.mode == 32) {
+                    newsegbase = addr >> 16
+                    addr = addr & 0xFFFF
+
+                    if (newsegbase != segbase) {
+                        output += this.make_line(0x04, 0, H1_E.encode({ v1: newsegbase }))
+                        segbase = newsegbase
+                    }
+                }
+                this.log.r("addr", addr)
+                output += this.make_line(0x00, addr, chunk)
+                i += this.row_bytes
+                start += this.row_bytes
+                this.log.r("output", output)
+            }
+        }
+        if (this.start.length > 0) {
+            if (this.mode == 16) {
+                const buff = H2_E.encode({ v1: this.start[0], v2: this.start[1] })
+                output += this.make_line(0x03, 0, buff)
+            } else if (this.mode == 32) {
+                const buff = I1_E.encode({ v1: this.start })
+                output += this.make_line(0x05, 0, buff)
+            }
+        }
+        output += this.make_line(0x01, 0, Buffer.from(""))
+        this.log.r("output", output)
+        this.log.e("write")
+        return output
     }
 
     /**
@@ -228,7 +284,7 @@ export class IHex {
      */
     write_file(filepath: string): void {
         try {
-            fs.writeFileSync(filepath, this.write(), { mode: "rwb" })
+            fs.writeFileSync(filepath, this.write(), { flag: "w" })
         } catch (e) {
             throw e
         }
