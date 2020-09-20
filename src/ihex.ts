@@ -2,7 +2,7 @@
  * @Author: ferried
  * @Email: harlancui@outlook.com
  * @Date: 2020-09-19 20:23:03
- * @LastEditTime: 2020-09-20 13:45:15
+ * @LastEditTime: 2020-09-20 16:35:55
  * @LastEditors: ferried
  * @Description: Basic description
  * @FilePath: /rymcu-ihex/src/ihex.ts
@@ -21,7 +21,7 @@ export class IHex {
     start: Buffer = Buffer.from([])
     mode: number = null
     areas: Map<number, Buffer> = new Map()
-    row_bytes = 16
+    row_bytes: number = 16
 
     constructor(debug: boolean) {
         this.areas = new Map()
@@ -38,6 +38,7 @@ export class IHex {
      */
     read(filepath: string): IHex {
         this.log.s("read")
+        this.log.r("filepath", filepath)
         let segbase: number = 0
         this.log.r("segbase", segbase)
         const contents = fs.readFileSync(filepath)
@@ -47,8 +48,11 @@ export class IHex {
                 line += String.fromCharCode(ch)
             } else {
                 const { line_type, addr, data } = this.parse_line(line.trimLeft())
+                this.log.r("line_type", line_type)
+                this.log.r("addr", addr)
+                this.log.r("data", data, "hex")
                 if (line_type == 0x00) {
-                    this.inser_data(segbase + addr, data)
+                    this.insert_data(segbase + addr, data)
                 } else if (line_type == 0x01) {
                     break;
                 } else if (line_type == 0x02) {
@@ -127,25 +131,47 @@ export class IHex {
     }
 
 
-    inser_data(istart: number, idata: Buffer) {
+    insert_data(istart: number, idata: Buffer) {
+        this.log.s("insert_data")
+        this.log.r("istart", istart)
+        this.log.r("idata", idata, "hex")
         const iend = istart + idata.length
+        this.log.r("iend", iend)
         const area = this.get_area(istart)
+        this.log.r("area", area)
         if (!area) {
             this.areas.set(istart, idata)
+            this.log.r("this.area", this.areas)
         } else {
+            console.log("ajskdlfjsakldfjaklsdjfklasjdfkljsadklfjaskldfjkalsjfklasjdfklsa")
             const data = this.areas.get(area)
+            this.log.r("data", data, "hex")
             const area_data = Buffer.from([...data.slice(0, istart - area), ...idata, ...data.slice(iend - area, -1)])
+            this.log.r("area_data", area_data, "hex")
             this.areas.set(area, area_data)
+            this.log.r("this.areas", this.areas)
         }
+        this.log.e("insert_data")
     }
 
     get_area(addr: number): number {
-        this.areas.forEach((data, start) => {
-            const end = start + data.length
-            if (addr >= start && addr < end) {
+        this.log.s("get_area")
+        this.log.r("addr", addr)
+        let iterator = this.areas.keys();
+        let r: IteratorResult<number>;
+        while (r = iterator.next(), !r.done) {
+            const start = r.value
+            const data = this.areas.get(start)
+            this.log.r("data", data, "hex")
+            const end = start + data.length 
+            this.log.r("start", start)
+            this.log.r("end", end)
+            this.log.r("addr >= start && addr < end", addr >= start && addr <= end)
+            if (addr >= start && addr <= end) {
                 return start
             }
-        })
+        }
+        this.log.e("get_area")
         return null
     }
 
@@ -162,33 +188,50 @@ export class IHex {
     /**
      * Set output hex file row width (bytes represented per row).
      */
-    set_row_bytes() { }
+    set_row_bytes(row_bytes: number) {
+        if (row_bytes < 1 || row_bytes > 0xff) {
+            throw new IHexValueException(`Value out of range: ${row_bytes}`)
+        }
+        this.row_bytes = row_bytes
+    }
+
+
+    make_line(line_type: number, addr: number, data: Buffer): string {
+        this.log.s("make_line")
+        let line: Buffer = BHB_E.encode({ v1: data.length, v2: addr, v3: line_type })
+        this.log.r("line", line, "hex")
+        line = Buffer.from([...line, ...data])
+        this.log.r("line", line, "hex")
+        const result = ":" + line.toString("hex").toString().toUpperCase() + this.calc_checksum(line).toString(16) + "\r\n"
+        this.log.r("result", result)
+        this.log.e("make_line")
+        return result
+    }
 
     /**
      * Extract binary data
      */
     extract_data() { }
 
-    make_line(line_type: number, addr: number, data: Buffer): string {
-        let line: Buffer = BHB_E.encode({ v1: data.length, v2: addr, v3: line_type })
-        line = Buffer.from([...line, ...data])
-        const result = ":" + line.toString("hex").toString().toUpperCase() + this.calc_checksum(line).toString(16) + "\r\n"
-        return result
-    }
-
     /**
      * Write Intel HEX data to string
      */
     write(): string {
+        let output = ""
+
         return null
     }
 
     /**
      * Write Intel HEX data to file
+     * @param filepath file path
      */
-    write_file(filepath: string) {
-
+    write_file(filepath: string): void {
+        try {
+            fs.writeFileSync(filepath, this.write(), { mode: "rwb" })
+        } catch (e) {
+            throw e
+        }
     }
-
 
 }
