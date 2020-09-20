@@ -2,7 +2,7 @@
  * @Author: ferried
  * @Email: harlancui@outlook.com
  * @Date: 2020-09-19 20:23:03
- * @LastEditTime: 2020-09-20 21:18:48
+ * @LastEditTime: 2020-09-20 22:06:11
  * @LastEditors: ferried
  * @Description: Basic description
  * @FilePath: /rymcu-ihex/src/ihex.ts
@@ -94,7 +94,8 @@ export class IHex {
         let line: Buffer = Buffer.from([])
         try {
             line = Buffer.from(rawline.slice(1, rawline.length), "hex")
-            this.log.r("line", line, "hex")
+            this.log.r("linexxxxxxxxxxxxx", line, "hex")
+            this.log.r("linexxxxxxxxxxxxx", line.length)
         } catch (e) {
             throw new IHexValueException("Invalid hex data")
         }
