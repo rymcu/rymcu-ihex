@@ -2,7 +2,7 @@
  * @Author: ferried
  * @Email: harlancui@outlook.com
  * @Date: 2020-09-19 20:23:03
- * @LastEditTime: 2020-09-20 20:32:05
+ * @LastEditTime: 2020-09-20 21:18:48
  * @LastEditors: ferried
  * @Description: Basic description
  * @FilePath: /rymcu-ihex/src/ihex.ts
@@ -46,9 +46,10 @@ export class IHex {
         for (let ch of contents) {
             if (ch != 0x0A) {
                 line += String.fromCharCode(ch)
-                console.log(line)
             } else {
+                console.log(line)
                 const { line_type, addr, data } = this.parse_line(line.trimLeft())
+                console.log("xxxxxxxxxxxxxxxx:", data)
                 this.log.r("line_type", line_type)
                 this.log.r("addr", addr)
                 this.log.r("data", data, "hex")
@@ -97,7 +98,7 @@ export class IHex {
         } catch (e) {
             throw new IHexValueException("Invalid hex data")
         }
-        const { v1: length, v2: addr, v3: line_type } = BHB.parse(line)
+        const { v1: length, v2: addr, v3: line_type } = BHB.parse(line.slice(0, 4))
         this.log.r("length", length)
         this.log.r("addr", addr)
         this.log.r("line_type", line_type)
@@ -145,7 +146,7 @@ export class IHex {
         } else {
             const data = this.areas.get(area)
             this.log.r("data", data, "hex")
-            const area_data = Buffer.from([...data.slice(0, istart - area), ...idata, ...data.slice(iend - area, -1)])
+            const area_data = Buffer.from([...data.slice(0, istart - area), ...idata, ...data.slice(iend - area, data.length)])
             this.log.r("area_data", area_data, "hex")
             this.areas.set(area, area_data)
             this.log.r("this.areas", this.areas)
@@ -237,7 +238,7 @@ export class IHex {
                     this.log.r("s_end", s_end)
                     const ar = result.subarray(0, s_start)
                     this.log.r("ar", ar)
-                    const br = result.subarray(s_end + 1, -1)
+                    const br = result.subarray(s_end + 1, result.length)
                     this.log.r("br", br)
                     result = Uint8Array.from([...ar, ...data, ...br])
                     this.log.r("result", result)
@@ -269,12 +270,13 @@ export class IHex {
                 this.log.r("s_end", s_end)
                 const ar = result.subarray(0, s_start)
                 this.log.r("ar", ar)
-                const br = result.subarray(s_end + 1, -1)
+                const br = result.subarray(s_end + 1, result.length)
                 this.log.r("br", br)
                 result = Uint8Array.from([...ar, ...data, ...br])
                 this.log.r("result", result)
             }
         }
+        this.log.e("extract_data")
         return result
     }
 
