@@ -2,7 +2,7 @@
  * @Author: ferried
  * @Email: harlancui@outlook.com
  * @Date: 2020-09-19 20:23:03
- * @LastEditTime: 2020-09-20 18:00:15
+ * @LastEditTime: 2020-09-20 20:14:47
  * @LastEditors: ferried
  * @Description: Basic description
  * @FilePath: /rymcu-ihex/src/ihex.ts
@@ -44,8 +44,9 @@ export class IHex {
         const contents = fs.readFileSync(filepath)
         let line = ""
         for (let ch of contents) {
-            if (ch != 0x0A && ch != 0x0D) {
+            if (ch != 0x0A) {
                 line += String.fromCharCode(ch)
+                console.log(line)
             } else {
                 const { line_type, addr, data } = this.parse_line(line.trimLeft())
                 this.log.r("line_type", line_type)
@@ -85,7 +86,7 @@ export class IHex {
      */
     parse_line(rawline: string) {
         this.log.s("parse_line")
-        this.log.r("parse_line", rawline)
+        this.log.r("rawline", rawline)
         if (rawline.slice(0, 1) != ":") {
             throw new IHexValueException(`Invalid line start character ${rawline[0]}`)
         }
@@ -206,8 +207,53 @@ export class IHex {
 
     /**
      * Extract binary data
+     * @param start 
+     * @param end 
      */
-    extract_data() { }
+    extract_data(start: number = null, end: number = null) {
+        if (!start) start = 0
+        if (!end) {
+            let result: Uint8Array = Uint8Array.from([])
+            let iterator = this.areas.keys();
+            let r: IteratorResult<number>;
+            while (r = iterator.next(), !r.done) {
+                const addr = r.value
+                const data = this.areas.get(start)
+                if (addr > start) {
+                    if (result.length < (addr - start)) {
+                        const k = Uint8Array.from([addr - start - result.length])
+                        result = Uint8Array.from([...result, ...k])
+                    }
+                    const s_start = addr - start
+                    const s_end = addr - start + data.length
+                    const ar = result.subarray(0, s_start)
+                    const br = result.subarray(s_end + 1, -1)
+                    result = Uint8Array.from([...ar, ...data, ...br])
+                }
+            }
+            return result
+        }
+        let result: Uint8Array = Uint8Array.from([])
+        let iterator = this.areas.keys();
+        let r: IteratorResult<number>;
+        while (r = iterator.next(), !r.done) {
+            const addr = r.value
+            let data = this.areas.get(start)
+            if (addr >= start && addr < end) {
+                data = data.slice(0, end - addr)
+                if (result.length < (addr - start)) {
+                    const k = Uint8Array.from([addr - start - result.length])
+                    result = Uint8Array.from([...result, ...k])
+                }
+                const s_start = addr - start
+                const s_end = addr - start + data.length
+                const ar = result.subarray(0, s_start)
+                const br = result.subarray(s_end + 1, -1)
+                result = Uint8Array.from([...ar, ...data, ...br])
+            }
+        }
+        return result
+    }
 
     /**
      * Write Intel HEX data to string
