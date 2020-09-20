@@ -2,7 +2,7 @@
  * @Author: ferried
  * @Email: harlancui@outlook.com
  * @Date: 2020-09-19 20:23:03
- * @LastEditTime: 2020-09-20 20:14:47
+ * @LastEditTime: 2020-09-20 20:29:48
  * @LastEditors: ferried
  * @Description: Basic description
  * @FilePath: /rymcu-ihex/src/ihex.ts
@@ -211,7 +211,9 @@ export class IHex {
      * @param end 
      */
     extract_data(start: number = null, end: number = null) {
+        this.log.s("extract_data")
         if (!start) start = 0
+        this.log.r("start", start)
         if (!end) {
             let result: Uint8Array = Uint8Array.from([])
             let iterator = this.areas.keys();
@@ -219,16 +221,26 @@ export class IHex {
             while (r = iterator.next(), !r.done) {
                 const addr = r.value
                 const data = this.areas.get(start)
-                if (addr > start) {
+                this.log.r("addr", addr)
+                this.log.r("data", data, "hex")
+                if (addr >= start) {
+                    this.log.r("addr >= start", addr >= start)
                     if (result.length < (addr - start)) {
+                        this.log.r("result.length < (addr - start)", result.length < (addr - start))
                         const k = Uint8Array.from([addr - start - result.length])
                         result = Uint8Array.from([...result, ...k])
+                        this.log.r("result", result)
                     }
                     const s_start = addr - start
+                    this.log.r("s_start", s_start)
                     const s_end = addr - start + data.length
+                    this.log.r("s_end", s_end)
                     const ar = result.subarray(0, s_start)
+                    this.log.r("ar", ar)
                     const br = result.subarray(s_end + 1, -1)
+                    this.log.r("br", br)
                     result = Uint8Array.from([...ar, ...data, ...br])
+                    this.log.r("result", result)
                 }
             }
             return result
@@ -241,15 +253,18 @@ export class IHex {
             let data = this.areas.get(start)
             if (addr >= start && addr < end) {
                 data = data.slice(0, end - addr)
-                if (result.length < (addr - start)) {
+                if (data.length < (addr - start)) {
                     const k = Uint8Array.from([addr - start - result.length])
                     result = Uint8Array.from([...result, ...k])
                 }
                 const s_start = addr - start
                 const s_end = addr - start + data.length
                 const ar = result.subarray(0, s_start)
+                this.log.r("ar", ar)
                 const br = result.subarray(s_end + 1, -1)
+                this.log.r("br", br)
                 result = Uint8Array.from([...ar, ...data, ...br])
+                this.log.r("result", result)
             }
         }
         return result
