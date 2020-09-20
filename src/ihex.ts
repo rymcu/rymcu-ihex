@@ -2,7 +2,7 @@
  * @Author: ferried
  * @Email: harlancui@outlook.com
  * @Date: 2020-09-19 20:23:03
- * @LastEditTime: 2020-09-20 20:29:48
+ * @LastEditTime: 2020-09-20 20:32:05
  * @LastEditors: ferried
  * @Description: Basic description
  * @FilePath: /rymcu-ihex/src/ihex.ts
@@ -251,14 +251,22 @@ export class IHex {
         while (r = iterator.next(), !r.done) {
             const addr = r.value
             let data = this.areas.get(start)
+            this.log.r("addr", addr)
+            this.log.r("data", data)
             if (addr >= start && addr < end) {
                 data = data.slice(0, end - addr)
+                this.log.r("data", data)
                 if (data.length < (addr - start)) {
+                    this.log.r("data.length < (addr - start)", data.length < (addr - start))
                     const k = Uint8Array.from([addr - start - result.length])
+                    this.log.r("k", k)
                     result = Uint8Array.from([...result, ...k])
+                    this.log.r("result", result)
                 }
                 const s_start = addr - start
+                this.log.r("s_start", s_start)
                 const s_end = addr - start + data.length
+                this.log.r("s_end", s_end)
                 const ar = result.subarray(0, s_start)
                 this.log.r("ar", ar)
                 const br = result.subarray(s_end + 1, -1)
