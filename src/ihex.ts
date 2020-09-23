@@ -2,15 +2,16 @@
  * @Author: ferried
  * @Email: harlancui@outlook.com
  * @Date: 2020-09-22 09:43:31
- * @LastEditTime: 2020-09-22 16:13:17
+ * @LastEditTime: 2020-09-23 15:21:25
  * @LastEditors: ferried
  * @Description: Basic description
  * @FilePath: /rymcu-ihex/src/ihex.ts
  * @LICENSE
  */
 import fs from "fs"
-import {BHB, H1, H2, I1} from './encode'
-import {IHexValueException} from './exception'
+import { format } from 'path'
+import { BHB, H1, H2, I1 } from './encode'
+import { IHexValueException } from './exception'
 
 export class IHex {
 
@@ -37,7 +38,7 @@ export class IHex {
             }
             if (ch == 0x0A) {
                 line = line.trimLeft().trimEnd()
-                const {line_type: t, addr: a, data: d} = ihex.parse_line(line)
+                const { line_type: t, addr: a, data: d } = ihex.parse_line(line)
                 if (t == 0x00) {
                     ihex.insert_data(segbase + a, d)
                 } else if (t == 0x01) {
@@ -47,7 +48,7 @@ export class IHex {
                     segbase = H1.parse(d.slice(0, 2)).v1 << 4
                 } else if (t == 0x03) {
                     ihex.mode = 16
-                    const {v1: cs, v2: ip} = H2.parse(d.slice(0, 2))
+                    const { v1: cs, v2: ip } = H2.parse(d.slice(0, 2))
                     ihex.start = [cs, ip]
                 } else if (t == 0x04) {
                     ihex.mode = 32
@@ -67,13 +68,13 @@ export class IHex {
     parse_line(rawline: string): any {
         if (rawline[0] != ":") throw new IHexValueException(`Invalid line start character ${rawline[0]}`)
         const line = Buffer.from(rawline.slice(1, rawline.length), "hex")
-        const {v1: length, v2: addr, v3: line_type} = BHB.parse(line.slice(0, 4))
+        const { v1: length, v2: addr, v3: line_type } = BHB.parse(line.slice(0, 4))
         let dataend = length + 4
         let data = line.slice(4, dataend)
         const cs1 = line[dataend]
         const cs2 = this.calc_checksum(line.slice(0, dataend))
         if (cs1 != cs2) new IHexValueException("Checksums do not match")
-        return {line_type, addr, data}
+        return { line_type, addr, data }
     }
 
     calc_checksum(data: Buffer) {
@@ -114,12 +115,21 @@ export class IHex {
             let r: IteratorResult<number>;
             while (r = iterator.next(), !r.done) {
                 const addr = r.value
-                if (addr >= this.start) {
-                    const data = this.areas.get(addr)
+                let data = this.areas.get(addr)
+                // addr >= start
+                if (addr >= start) {
                     if (result.length < (addr - start)) {
-                        result.write((addr - start - result.length).toString(16), result.length, addr - start)
+                        // result[len(result):addr - start] = bytes(addr - start - len(result))
+                        let i = addr - start - result.length
+                        while (i > 0) {
+                            result = Buffer.from([0x00, ...result])
+                            i -= 1
+                        }
                     }
-                    result.write(data.toString(), addr - start, addr - start + data.length)
+                    // result[addr - start:addr - start + len(data)] = data
+                    let ld = result.slice(0, addr - start)
+                    let rd = result.slice(addr - start + data.length, result.length)
+                    result = Buffer.from([...ld, ...data, ...rd])
                 }
             }
             return result
@@ -129,12 +139,22 @@ export class IHex {
         let r: IteratorResult<number>;
         while (r = iterator.next(), !r.done) {
             const addr = r.value
-            if (addr >= this.start && addr < end) {
-                const data = this.areas.get(addr).slice(0,end-addr)
+            let data = this.areas.get(addr).slice(0, end - addr)
+            // if addr >= start and addr < end:
+            if (addr >= start && addr < end) {
+                data = data.slice(0, (end - addr))
                 if (result.length < (addr - start)) {
-                    result.write((addr - start - result.length).toString(16), result.length, addr - start)
+                    // result[len(result):addr - start] = bytes(addr - start - len(result))
+                    let i = addr - start - result.length
+                    while (i > 0) {
+                        result = Buffer.from([0x00, ...result])
+                        i -= 1
+                    }
                 }
-                result.write(data.toString(), addr - start, addr - start + data.length)
+                // result[addr - start:addr - start + len(data)] = data
+                let ld = result.slice(0, addr - start)
+                let rd = result.slice(addr - start + data.length, result.length)
+                result = Buffer.from([...ld, ...data, ...rd])
             }
         }
         return result
