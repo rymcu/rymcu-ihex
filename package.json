@@ -1,6 +1,6 @@
 {
   "name": "rymcu-ihex",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "rymcu ihex",
   "scripts": {
     "rm": "node src/utils/rm.js",
