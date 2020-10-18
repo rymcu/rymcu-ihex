@@ -3,11 +3,13 @@
   "version": "1.0.2",
   "description": "rymcu ihex",
   "scripts": {
-    "clean": "rm -rf dist",
-    "test": "yarn clean && tsc -p tsconfig.json &&  node ./dist/test/ihex.test.js ",
-    "build": "rm -rf ./dist && tsc -p tsconfig.json && cp package.json ./dist/package.json",
+    "rm": "node src/utils/rm.js",
+    "cp": "node src/utils/cp.js",
+    "clean": "npm run rm dist",
+    "test": "npm run clean && tsc -p tsconfig.json &&  node ./dist/test/ihex.test.js ",
+    "build": "npm run rm dist && tsc -p tsconfig.json && npm run cp package.json ./dist",
     "changelog": "gitmoji-changelog",
-    "release": "yarn build && cp package.json ./dist/package.json && cd ./dist && npm publish"
+    "release": "npm run build && npm run cp package.json ./dist && cd ./dist && npm publish"
   },
   "keywords": [],
   "repository": {

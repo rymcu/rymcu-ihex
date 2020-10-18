@@ -2,7 +2,7 @@
  * @Author: ferried
  * @Email: harlancui@outlook.com
  * @Date: 2020-10-18 10:10:39
- * @LastEditTime: 2020-10-18 10:22:29
+ * @LastEditTime: 2020-10-18 11:33:27
  * @LastEditors: ferried
  * @Description: Basic description
  * @FilePath: /rymcu-ihex/src/utils/rm.js
@@ -18,8 +18,6 @@ needRemove.forEach((rmFile) => {
   const filePath = `${basePath}/${rmFile}`;
   if (fs.existsSync(filePath)) {
     delFile(filePath);
-  } else {
-    throw Error(`${rmFile} file not exit!`);
   }
 });
 
